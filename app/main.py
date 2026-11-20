@@ -1,5 +1,6 @@
 
 from fastapi import FastAPI
+from app.api.ingestion import router as ingestion_router
 
 app = FastAPI(
     title="Palm Mind RAG API",
@@ -13,3 +14,10 @@ def home():
     return {
         "message": "Palm Mind RAG API is running successfully!"
     }
+
+
+app.include_router(
+    ingestion_router,
+    prefix="/api/documents",
+    tags=["Document Ingestion"]
+)
