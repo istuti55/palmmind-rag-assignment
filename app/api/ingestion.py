@@ -8,6 +8,8 @@ from app.services.chunking import (
     fixed_size_chunking,
     sentence_based_chunking
 )
+from app.services.embedding_service import generate_embeddings
+from app.services.vector_store import create_collection, store_chunks
 
 router = APIRouter()
 
@@ -17,7 +19,6 @@ async def upload_document(
     file: UploadFile = File(...),
     chunking_strategy: Literal["fixed_size", "sentence_based"] = Form("fixed_size")
 ):
-
     if not file.filename or not file.filename.lower().endswith((".pdf", ".txt")):
         raise HTTPException(
             status_code=400,
@@ -43,9 +44,22 @@ async def upload_document(
 
     if chunking_strategy == "fixed_size":
         chunks = fixed_size_chunking(extracted_text)
-
     else:
         chunks = sentence_based_chunking(extracted_text)
+
+    # Generate embeddings for all chunks
+    embeddings = generate_embeddings(chunks)
+
+    # Create Qdrant collection if it doesn't exist
+    create_collection()
+
+    # Store chunks and embeddings in Qdrant
+    store_chunks(
+        chunks=chunks,
+        embeddings=embeddings,
+        filename=file.filename,
+        chunking_strategy=chunking_strategy
+    )
 
     return {
         "filename": file.filename,
@@ -53,5 +67,6 @@ async def upload_document(
         "chunking_strategy": chunking_strategy,
         "character_count": len(extracted_text),
         "chunk_count": len(chunks),
+        "storage": "Embeddings successfully stored in Qdrant",
         "chunks": chunks
     }
