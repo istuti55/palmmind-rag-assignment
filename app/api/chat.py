@@ -8,12 +8,16 @@ router = APIRouter()
 
 class ChatRequest(BaseModel):
     question: str
+    session_id: str = "default"
 
 
 @router.post("/chat")
 def chat(request: ChatRequest):
     try:
-        result = ask_question(request.question)
+        result = ask_question(
+            request.question,
+            session_id=request.session_id
+        )
         return result
 
     except ValueError as error:

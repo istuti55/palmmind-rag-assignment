@@ -5,7 +5,7 @@ from google import genai
 
 load_dotenv()
 
-MODEL_NAME = "gemini-3.1-flash-lite"
+MODEL_NAME = "gemini-3.5-flash-lite"
 
 
 def generate_answer(question: str, context: str) -> str:
