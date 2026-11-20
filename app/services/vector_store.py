@@ -65,3 +65,28 @@ def store_chunks(
         collection_name=COLLECTION_NAME,
         points=points
     )
+
+
+
+def search_similar_chunks(
+    query_embedding: list[float],
+    limit: int = 3
+) -> list[dict]:
+    """
+    Search Qdrant and return the most relevant document chunks.
+    """
+    results = client.query_points(
+        collection_name=COLLECTION_NAME,
+        query=query_embedding,
+        limit=limit,
+        with_payload=True
+    )
+
+    return [
+        {
+            "text": point.payload["text"],
+            "filename": point.payload["filename"],
+            "score": point.score
+        }
+        for point in results.points
+    ]
