@@ -10,6 +10,7 @@ from app.services.chunking import (
 )
 from app.services.embedding_service import generate_embeddings
 from app.services.vector_store import create_collection, store_chunks
+from app.services.document_metadata_service import save_document_metadata
 
 router = APIRouter()
 
@@ -60,6 +61,13 @@ async def upload_document(
         filename=file.filename,
         chunking_strategy=chunking_strategy
     )
+    metadata = save_document_metadata(
+    filename=file.filename,
+    file_type=file.filename.rsplit(".", 1)[-1].lower(),
+    chunking_strategy=chunking_strategy,
+    character_count=len(extracted_text),
+    chunk_count=len(chunks)
+)
 
     return {
         "filename": file.filename,
@@ -68,5 +76,7 @@ async def upload_document(
         "character_count": len(extracted_text),
         "chunk_count": len(chunks),
         "storage": "Embeddings successfully stored in Qdrant",
+        
+        "document_metadata": metadata,
         "chunks": chunks
     }
