@@ -1,5 +1,6 @@
 
 import os
+import json
 from dotenv import load_dotenv
 from google import genai
 
@@ -9,9 +10,8 @@ MODEL_NAME = "gemini-3.5-flash-lite"
 
 
 def generate_answer(question: str, context: str) -> str:
-    """
-    Generate an answer using the question and retrieved document context.
-    """
+    """Generate an answer using retrieved document context."""
+
     api_key = os.getenv("GEMINI_API_KEY")
 
     if not api_key:
@@ -52,3 +52,69 @@ def generate_answer(question: str, context: str) -> str:
         raise ValueError("Gemini returned an empty response")
 
     return response.text
+
+
+def extract_booking_details(conversation: str) -> dict:
+    """Extract interview booking details from conversation."""
+
+    api_key = os.getenv("GEMINI_API_KEY")
+
+    if not api_key:
+        raise ValueError("GEMINI_API_KEY not found in .env file")
+
+    client = genai.Client(api_key=api_key)
+
+    prompt = f"""
+    You are an interview booking assistant.
+
+    Return ONLY a valid JSON object with these fields:
+
+    {{
+        "booking_intent": true,
+        "name": null,
+        "email": null,
+        "interview_date": null,
+        "interview_time": null,
+        "missing_fields": [],
+        "reply": "A friendly message"
+    }}
+
+    Instructions:
+    1. Detect whether the candidate wants to book an interview.
+    2. Extract name, email, date and time.
+    3. Never invent missing information.
+    4. Ask for missing details one at a time.
+    5. Use the entire conversation.
+    6. Return dates in YYYY-MM-DD format.
+    7. Return times in 24-hour HH:MM format.
+    8. Do not claim that an interview is booked.
+       The application will confirm booking after saving it.
+
+    Conversation:
+    {conversation}
+    """
+
+    response = client.models.generate_content(
+        model=MODEL_NAME,
+        contents=prompt
+    )
+
+    if not response.text:
+        raise ValueError("Gemini returned an empty response")
+
+    raw_response = response.text.strip()
+
+    # Remove Markdown code fences if Gemini adds them
+    if raw_response.startswith("```"):
+        raw_response = raw_response.split("\n", 1)[1]
+
+        if raw_response.endswith("```"):
+            raw_response = raw_response[:-3].strip()
+
+    try:
+        return json.loads(raw_response)
+
+    except json.JSONDecodeError as error:
+        raise ValueError(
+            f"Gemini returned invalid JSON: {raw_response}"
+        ) from error
