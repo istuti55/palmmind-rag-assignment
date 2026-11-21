@@ -4,11 +4,10 @@ import redis
 # Connect to Redis running in Docker
 redis_client = redis.Redis(
     host="localhost",
-    port=6379,
+    port=6380,
     decode_responses=True,
     protocol=2
 )
-
 def save_message(session_id: str, role: str, message: str) -> None:
     """
     Save a conversation message in Redis.

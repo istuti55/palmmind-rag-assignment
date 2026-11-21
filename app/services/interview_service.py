@@ -1,4 +1,5 @@
 
+import re
 from datetime import date, time
 
 from app.services.llm_service import extract_booking_details
@@ -32,12 +33,11 @@ def process_interview_message(session_id: str, message: str) -> dict:
     # Get previous conversation
     history = get_chat_history(session_id)
 
-    # Include the current message without saving it yet
     conversation = "\n".join(
         history + [f"user: {message}"]
     )
 
-    # Ask Gemini to identify booking intent and extract details
+    # Extract booking details using Gemini
     details = extract_booking_details(conversation)
 
     if not details.get("booking_intent"):
@@ -46,10 +46,9 @@ def process_interview_message(session_id: str, message: str) -> dict:
             "booking_completed": False
         }
 
-    # Save the message only when it is part of a booking conversation
     save_message(session_id, "user", message)
 
-    # Calculate missing fields in Python
+    # Check for missing information
     required_fields = [
         "name",
         "email",
@@ -60,6 +59,7 @@ def process_interview_message(session_id: str, message: str) -> dict:
     missing_fields = [
         field for field in required_fields
         if not details.get(field)
+        or not str(details[field]).strip()
     ]
 
     if missing_fields:
@@ -77,14 +77,74 @@ def process_interview_message(session_id: str, message: str) -> dict:
             "missing_fields": missing_fields
         }
 
-    # Convert date and time strings into Python objects
-    interview_date = date.fromisoformat(details["interview_date"])
-    interview_time = time.fromisoformat(details["interview_time"])
+    # Validate email format
+    email = details["email"].strip()
+
+    if not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email):
+        reply = (
+            "That email address doesn't look valid. "
+            "Please provide a valid email address."
+        )
+
+        save_message(session_id, "assistant", reply)
+
+        return {
+            "booking_intent": True,
+            "booking_completed": False,
+            "message": reply,
+            "invalid_fields": ["email"]
+        }
+
+    # Validate interview date
+    try:
+        interview_date = date.fromisoformat(
+            details["interview_date"]
+        )
+    except (ValueError, TypeError):
+        reply = "Please provide a valid interview date in YYYY-MM-DD format."
+
+        save_message(session_id, "assistant", reply)
+
+        return {
+            "booking_intent": True,
+            "booking_completed": False,
+            "message": reply,
+            "invalid_fields": ["interview_date"]
+        }
+
+    if interview_date < date.today():
+        reply = "The interview date cannot be in the past. Please choose a future date."
+
+        save_message(session_id, "assistant", reply)
+
+        return {
+            "booking_intent": True,
+            "booking_completed": False,
+            "message": reply,
+            "invalid_fields": ["interview_date"]
+        }
+
+    # Validate interview time
+    try:
+        interview_time = time.fromisoformat(
+            details["interview_time"]
+        )
+    except (ValueError, TypeError):
+        reply = "Please provide a valid interview time, such as 10:30."
+
+        save_message(session_id, "assistant", reply)
+
+        return {
+            "booking_intent": True,
+            "booking_completed": False,
+            "message": reply,
+            "invalid_fields": ["interview_time"]
+        }
 
     # Save booking in PostgreSQL
     booking = create_booking(
-        name=details["name"],
-        email=details["email"],
+        name=details["name"].strip(),
+        email=email,
         interview_date=interview_date,
         interview_time=interview_time
     )

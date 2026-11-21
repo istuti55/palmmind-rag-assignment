@@ -86,9 +86,10 @@ def extract_booking_details(conversation: str) -> dict:
     4. Ask for missing details one at a time.
     5. Use the entire conversation.
     6. Return dates in YYYY-MM-DD format.
-    7. Return times in 24-hour HH:MM format.
-    8. Do not claim that an interview is booked.
-       The application will confirm booking after saving it.
+    7. If the user provides a time, extract it even if it is invalid.
+    8. For valid times, return them in 24-hour HH:MM format.
+    9. For invalid times, preserve the original value so the application can validate it.
+    10. Never set a provided time to null just because its format is invalid.
 
     Conversation:
     {conversation}

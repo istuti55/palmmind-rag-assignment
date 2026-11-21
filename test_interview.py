@@ -25,3 +25,11 @@ for message in messages:
     )
 
     print("Chatbot:", result)
+
+from datetime import time
+
+try:
+    time.fromisoformat("25:90")
+    print("ERROR: Invalid time was accepted!")
+except ValueError:
+    print("SUCCESS: Invalid time was rejected!")
