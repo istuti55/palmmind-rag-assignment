@@ -1,0 +1,21 @@
+
+[
+  {
+    "question": "How many paid sick leave days do employees get?",
+    "expected_answer": "Employees may take up to 10 days of paid sick leave each year.",
+    "expected_source": "palmmind_page_citation_test.pdf",
+    "expected_page": 2
+  },
+  {
+    "question": "How many annual leave days are employees entitled to?",
+    "expected_answer": "Employees are entitled to 18 days of annual leave each year.",
+    "expected_source": "palmmind_page_citation_test.pdf",
+    "expected_page": 1
+  },
+  {
+    "question": "How many days per week can employees work remotely?",
+    "expected_answer": "Employees may work remotely up to two days per week.",
+    "expected_source": "palmmind_page_citation_test.pdf",
+    "expected_page": 3
+  }
+]
