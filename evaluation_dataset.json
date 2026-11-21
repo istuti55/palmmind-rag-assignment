@@ -34,5 +34,15 @@
     "expected_source": "palmmind_page_citation_test.pdf",
     "expected_page": 3,
     "relevant_pages": [3]
+  },
+
+  {
+    "question": "What is the company's maternity leave policy?",
+    "expected_answer": "The provided document does not contain information about maternity leave.",
+    "expected_source": null,
+    "expected_page": null,
+    "relevant_pages": [],
+    "answerable": false
   }
+
 ]
