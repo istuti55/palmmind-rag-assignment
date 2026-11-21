@@ -14,10 +14,12 @@ client = QdrantClient(url="http://localhost:6333")
 COLLECTION_NAME = "documents"
 
 
+
 def create_collection() -> None:
     """
-    Create a collection in Qdrant to store document embeddings.
+    Create the Qdrant collection and its BM25 text index.
     """
+
     collections = client.get_collections().collections
 
     collection_exists = any(
@@ -34,6 +36,22 @@ def create_collection() -> None:
             )
         )
 
+    # Check whether the text index already exists.
+    collection_info = client.get_collection(COLLECTION_NAME)
+
+    if "text" not in collection_info.payload_schema:
+        client.create_payload_index(
+            collection_name=COLLECTION_NAME,
+            field_name="text",
+            field_schema=models.TextIndexParams(
+                type="text",
+                tokenizer="word",
+                min_token_len=2,
+                max_token_len=40,
+                lowercase=True
+            ),
+            wait=True
+        )
 
 def store_chunks(
     chunks: list[str],

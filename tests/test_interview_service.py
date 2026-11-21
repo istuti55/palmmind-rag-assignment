@@ -13,16 +13,19 @@ def mock_dependencies(monkeypatch):
         "get",
         lambda key: None
     )
+
     monkeypatch.setattr(
         interview_service.redis_client,
         "set",
-        lambda key, value: True
+        lambda *args, **kwargs: True
     )
+
     monkeypatch.setattr(
         interview_service,
         "get_chat_history",
         lambda session_id: []
     )
+
     monkeypatch.setattr(
         interview_service,
         "save_message",
@@ -35,14 +38,18 @@ def valid_details():
         "booking_intent": True,
         "name": "John Smith",
         "email": "john@example.com",
-        "interview_date": (date.today() + timedelta(days=7)).isoformat(),
+        "interview_date": (
+            date.today() + timedelta(days=7)
+        ).isoformat(),
         "interview_time": "10:30"
     }
 
 
 def test_empty_message():
     with pytest.raises(ValueError, match="Message cannot be empty"):
-        interview_service.process_interview_message("test", "   ")
+        interview_service.process_interview_message(
+            "test", "   "
+        )
 
 
 def test_already_completed_booking(monkeypatch):
@@ -50,6 +57,12 @@ def test_already_completed_booking(monkeypatch):
         interview_service.redis_client,
         "get",
         lambda key: "42"
+    )
+
+    monkeypatch.setattr(
+        interview_service,
+        "extract_booking_details",
+        lambda message: {"booking_intent": True}
     )
 
     result = interview_service.process_interview_message(
