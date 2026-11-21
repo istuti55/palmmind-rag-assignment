@@ -1,7 +1,8 @@
-import re
+
 import json
 
 from app.services.rag_service import ask_question
+from app.services.llm_service import evaluate_answer
 
 
 def load_dataset():
@@ -40,20 +41,15 @@ def evaluate_rag():
         if source_found:
             correct_sources += 1
 
-        # Simple keyword-based answer check
-        expected_keywords = re.findall(
-            r"\b\w+\b",
-            test_case["expected_answer"].lower()
+        answer_is_correct = evaluate_answer(
+            expected_answer=test_case["expected_answer"],
+            actual_answer=actual_answer
         )
 
-        actual_keywords = re.findall(
-            r"\b\w+\b",
-            actual_answer.lower()
-        )
-
-        if all(keyword in actual_keywords for keyword in expected_keywords):
+        if answer_is_correct:
             correct_answers += 1
 
+        print("ANSWER CORRECT:", answer_is_correct)
         print("EXPECTED PAGE:", expected_page)
         print("SOURCE FOUND:", source_found)
 

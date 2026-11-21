@@ -119,3 +119,45 @@ def extract_booking_details(conversation: str) -> dict:
         raise ValueError(
             f"Gemini returned invalid JSON: {raw_response}"
         ) from error
+
+
+def evaluate_answer(expected_answer: str, actual_answer: str) -> bool:
+    """Evaluate whether two answers have the same meaning using Gemini."""
+
+    api_key = os.getenv("GEMINI_API_KEY")
+
+    if not api_key:
+        raise ValueError("GEMINI_API_KEY not found in .env file")
+
+    client = genai.Client(api_key=api_key)
+
+    prompt = f"""
+    You are an answer quality evaluator.
+
+    Compare the expected answer with the actual answer.
+
+    Consider the answers equivalent if they communicate
+    the same important information, even when the wording differs.
+
+    Do not require exact word matching.
+    Mark the answer incorrect if it contains contradictory
+    or materially incorrect information.
+
+    Expected answer:
+    {expected_answer}
+
+    Actual answer:
+    {actual_answer}
+
+    Return ONLY YES or NO.
+    """
+
+    response = client.models.generate_content(
+        model=MODEL_NAME,
+        contents=prompt
+    )
+
+    if not response.text:
+        raise ValueError("Gemini returned an empty evaluation")
+
+    return response.text.strip().upper() == "YES"
