@@ -1,6 +1,7 @@
 
-import fitz
 from pathlib import Path
+
+import pymupdf
 
 
 def extract_text_with_pages(filename: str, content: bytes) -> list[dict]:
@@ -11,10 +12,7 @@ def extract_text_with_pages(filename: str, content: bytes) -> list[dict]:
     extension = Path(filename).suffix.lower()
 
     if extension == ".pdf":
-        pdf_document = fitz.open(
-            stream=content,
-            filetype="pdf"
-        )
+        pdf_document = pymupdf.open(stream=content, filetype="pdf")
 
         extracted_pages = []
 
