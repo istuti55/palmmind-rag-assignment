@@ -22,7 +22,7 @@ The system allows users to upload PDF and TXT documents, ask questions about the
 - Context-aware answer generation using Gemini
 - Page-level source citations for PDF documents
 - Conversational memory using Redis
-- Custom RAG pipeline without using a pre-built RetrievalQAChain
+- Custom RAG pipeline without a pre-built RetrievalQAChain
 
 ### AI-Powered Interview Booking
 - Natural-language interview booking conversations
@@ -117,7 +117,9 @@ venv\Scripts\Activate.ps1
 
 ### 3. Install dependencies
 
-```bash
+The requirements file is located in the project root.
+
+```powershell
 pip install -r requirements.txt
 ```
 
@@ -127,10 +129,16 @@ Create a `.env` file in the project root:
 
 ```env
 GEMINI_API_KEY=your_gemini_api_key
+
 DATABASE_URL=postgresql+psycopg://raguser:ragpassword@localhost:5433/ragdb
+
+QDRANT_URL=http://localhost:6333
+
+REDIS_HOST=localhost
+REDIS_PORT=6380
 ```
 
-Replace the Gemini API key placeholder with your own API key.
+Replace the Gemini API key placeholder with your own API key. Adjust database credentials if you use different PostgreSQL settings.
 
 **Important:** Never commit your `.env` file or expose API credentials.
 
@@ -146,8 +154,10 @@ docker run -d --name qdrant -p 6333:6333 -p 6334:6334 qdrant/qdrant
 
 **Redis**
 
+The application uses port `6380` on the host, mapped to Redis's default container port `6379`.
+
 ```bash
-docker run -d --name redis-docker -p 6379:6379 redis
+docker run -d --name redis-docker -p 6380:6379 redis
 ```
 
 **PostgreSQL**
@@ -156,9 +166,13 @@ docker run -d --name redis-docker -p 6379:6379 redis
 docker run -d --name postgres -e POSTGRES_USER=raguser -e POSTGRES_PASSWORD=ragpassword -e POSTGRES_DB=ragdb -p 5433:5432 -v postgres_data:/var/lib/postgresql/data postgres:17
 ```
 
-If the containers already exist, start them using `docker start` instead of creating duplicates.
+If the containers already exist, start them using:
 
-Ensure the Redis connection settings in the application match the configured Redis port.
+```bash
+docker start qdrant redis-docker postgres
+```
+
+Ensure the `.env` connection settings match the ports and credentials used by your containers.
 
 ### 6. Initialize the database
 

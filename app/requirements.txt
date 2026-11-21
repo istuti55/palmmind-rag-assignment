@@ -1,9 +1,0 @@
-fastapi
-uvicorn
-python-multipart
-pymupdf
-google-genai
-python-dotenv
-qdrant-client
-sqlalchemy
-psycopg[binary]

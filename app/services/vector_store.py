@@ -1,14 +1,17 @@
+
+import os
+from dotenv import load_dotenv
 from qdrant_client import QdrantClient
-from qdrant_client.models import Distance, VectorParams
+from qdrant_client.models import Distance, VectorParams, PointStruct
 from qdrant_client import models
 from uuid import uuid4
-from qdrant_client.models import PointStruct
 
+load_dotenv()
 
-
-# Connect to Qdrant
-client = QdrantClient(url="http://localhost:6333")
-
+# Connect to Qdrant using environment variables
+client = QdrantClient(
+    url=os.getenv("QDRANT_URL", "http://localhost:6333")
+)
 
 # Collection name
 COLLECTION_NAME = "documents"

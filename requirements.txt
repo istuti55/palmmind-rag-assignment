@@ -1,0 +1,11 @@
+fastapi==0.165.0
+uvicorn==0.54.0
+python-multipart==0.0.34
+pymupdf==2.1
+google-genai==3.6.1
+python-dotenv==1.2.4
+qdrant-client==1.20.0
+SQLAlchemy==2.1.9
+psycopg[binary]==3.3.9
+redis==8.1.0
+pytest==9.2.0

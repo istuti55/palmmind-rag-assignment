@@ -1,13 +1,19 @@
 
+import os
 import redis
+from dotenv import load_dotenv
 
-# Connect to Redis running in Docker
+load_dotenv()
+
+# Connect to Redis using environment variables
 redis_client = redis.Redis(
-    host="localhost",
-    port=6380,
+    host=os.getenv("REDIS_HOST", "localhost"),
+    port=int(os.getenv("REDIS_PORT", "6380")),
     decode_responses=True,
     protocol=2
 )
+
+
 def save_message(session_id: str, role: str, message: str) -> None:
     """
     Save a conversation message in Redis.
