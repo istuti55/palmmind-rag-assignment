@@ -1,26 +1,43 @@
 # Palm Mind AI – Conversational RAG System
 
-## Project Overview
+A document-based Conversational Retrieval-Augmented Generation (RAG) system built with FastAPI, Google Gemini, Qdrant, Redis, and PostgreSQL.
 
-This project implements a Retrieval-Augmented Generation (RAG) system with conversational memory and an AI-powered interview booking assistant.
-
-Users can upload PDF and TXT documents, ask questions about their content, and interact with an interview booking assistant through REST APIs.
+The system allows users to upload PDF and TXT documents, ask questions about their content, receive context-aware answers with source references, and interact with an AI-powered interview booking assistant.
 
 ## Features
 
-- PDF and TXT document ingestion
-- Two chunking strategies:
-  - Fixed-size chunking
+### Document Ingestion
+- PDF and TXT document upload
+- PDF text extraction with page number preservation
+- Two configurable chunking strategies:
+  - Fixed-size chunking with overlap
   - Sentence-based chunking
+- Document metadata persistence in PostgreSQL
+
+### Retrieval-Augmented Generation
 - Text embeddings using Google Gemini
-- Vector storage and semantic search using Qdrant
-- Context-aware answers using Gemini LLM
+- Vector storage and retrieval using Qdrant
+- Hybrid search combining semantic vector search and BM25 full-text search
+- Reciprocal Rank Fusion (RRF) for combining retrieval results
+- Context-aware answer generation using Gemini
+- Page-level source citations for PDF documents
 - Conversational memory using Redis
-- Interview booking through natural language
-- Interview detail validation (name, email, date, and time)
+- Custom RAG pipeline without using a pre-built RetrievalQAChain
+
+### AI-Powered Interview Booking
+- Natural-language interview booking conversations
+- Automatic extraction of booking details using Gemini
+- Collection of candidate name, email, interview date, and time
+- Email, date, and time validation
+- Prevention of repeated bookings within a completed session
 - Booking persistence using PostgreSQL
-- Document metadata storage
-- REST APIs built with FastAPI
+- Redis-based session booking state
+
+### Evaluation and Testing
+- RAG evaluation script with a manually curated evaluation dataset
+- Answer and source accuracy evaluation
+- Precision@3 and Recall@3 metrics
+- 23 automated tests using pytest
 
 ## Technology Stack
 
@@ -28,14 +45,15 @@ Users can upload PDF and TXT documents, ask questions about their content, and i
 |---|---|
 | Python | Backend development |
 | FastAPI | REST API framework |
-| Google Gemini | LLM and embeddings |
-| Qdrant | Vector database |
-| Redis | Conversational memory |
-| PostgreSQL | Persistent metadata and bookings |
+| Google Gemini | LLM and text embeddings |
+| Qdrant | Vector database and hybrid retrieval |
+| Redis | Conversational memory and session state |
+| PostgreSQL | Document metadata and booking persistence |
 | SQLAlchemy | Database ORM |
 | PyMuPDF | PDF text extraction |
-| Docker | Database and service containers |
 | Pydantic | Data validation |
+| Docker | Running supporting services |
+| Pytest | Automated testing |
 
 ## Project Structure
 
@@ -66,6 +84,14 @@ palmmind-rag-assignment/
 │   │
 │   └── main.py
 │
+├── tests/
+│   ├── test_chunking.py
+│   ├── test_document_processor.py
+│   ├── test_rag_service.py
+│   └── test_interview_service.py
+│
+├── evaluate_rag.py
+├── evaluation_dataset.json
 ├── requirements.txt
 ├── README.md
 └── .gitignore
@@ -104,31 +130,35 @@ GEMINI_API_KEY=your_gemini_api_key
 DATABASE_URL=postgresql+psycopg://raguser:ragpassword@localhost:5433/ragdb
 ```
 
-Replace the Gemini API key placeholder with your own key.
+Replace the Gemini API key placeholder with your own API key.
 
-**Never commit your `.env` file or expose your API key.**
+**Important:** Never commit your `.env` file or expose API credentials.
 
-### 5. Start the Docker services
+### 5. Start supporting services
 
-Qdrant:
+Make sure Docker Desktop is running.
+
+**Qdrant**
 
 ```bash
 docker run -d --name qdrant -p 6333:6333 -p 6334:6334 qdrant/qdrant
 ```
 
-Redis:
+**Redis**
 
 ```bash
-docker run -d --name redis-docker -p 6380:6379 redis
+docker run -d --name redis-docker -p 6379:6379 redis
 ```
 
-PostgreSQL:
+**PostgreSQL**
 
 ```bash
 docker run -d --name postgres -e POSTGRES_USER=raguser -e POSTGRES_PASSWORD=ragpassword -e POSTGRES_DB=ragdb -p 5433:5432 -v postgres_data:/var/lib/postgresql/data postgres:17
 ```
 
-If these containers already exist, start them with `docker start` instead of creating duplicates.
+If the containers already exist, start them using `docker start` instead of creating duplicates.
+
+Ensure the Redis connection settings in the application match the configured Redis port.
 
 ### 6. Initialize the database
 
@@ -159,7 +189,14 @@ Form fields:
 - `file`: PDF or TXT document
 - `chunking_strategy`: `fixed_size` or `sentence_based`
 
-The API extracts text, creates chunks, generates embeddings, stores vectors in Qdrant, and saves document metadata in PostgreSQL.
+Processing workflow:
+
+1. Extract text from the uploaded document.
+2. Preserve PDF page information.
+3. Divide the extracted text into chunks using the selected strategy.
+4. Generate embeddings using Gemini.
+5. Store vectors and chunk information in Qdrant.
+6. Save document metadata in PostgreSQL.
 
 ### 2. Conversational Chat
 
@@ -174,11 +211,22 @@ Example request:
 }
 ```
 
-The API retrieves relevant document chunks, generates an answer using Gemini, and maintains conversation history using Redis.
+Processing workflow:
 
-The same endpoint also supports interview booking conversations.
+1. Retrieve conversation history from Redis.
+2. Generate a query embedding.
+3. Retrieve relevant document chunks using hybrid search.
+4. Combine semantic and BM25 retrieval results using RRF.
+5. Provide retrieved context to Gemini.
+6. Generate a context-aware answer.
+7. Return the answer with source information.
+8. Save conversation messages in Redis.
 
-Example booking request:
+### 3. Interview Booking
+
+The conversational chat endpoint also supports interview booking.
+
+Example request:
 
 ```json
 {
@@ -187,54 +235,116 @@ Example booking request:
 }
 ```
 
-The assistant collects the candidate's name, email, interview date, and time before saving the booking in PostgreSQL.
+The assistant collects the candidate's:
+
+- Name
+- Email
+- Interview date
+- Interview time
+
+Gemini extracts booking details from the conversation. The application validates the information before saving the booking in PostgreSQL.
+
+Redis maintains the booking state for the session to prevent repeated bookings within that session.
 
 ## Testing
 
-The project includes individual test scripts for components such as:
+The project includes 23 automated tests implemented using pytest.
 
-- Chunking
-- Embeddings
-- Qdrant
-- Document retrieval
-- Gemini LLM
-- RAG
-- Redis
-- PostgreSQL
-- Interview booking
-
-Run individual tests using:
+Run the complete test suite:
 
 ```bash
-python test_chunking.py
-python test_embeddings.py
-python test_qdrant.py
-python test_rag.py
-python test_redis.py
-python test_database.py
-python test_booking.py
-python test_interview.py
+python -m pytest -v
 ```
 
-## Architecture
+### Test Coverage
 
-1. Documents are uploaded through the ingestion API.
-2. Text is extracted and divided using the selected chunking strategy.
-3. Gemini generates embeddings for the document chunks.
-4. Qdrant stores the embeddings and associated text.
-5. User questions are converted into query embeddings.
-6. Relevant document chunks are retrieved from Qdrant.
-7. Gemini generates answers using the retrieved context.
-8. Redis maintains conversation history.
-9. Interview booking information is validated and stored in PostgreSQL.
+| Test file | Tests |
+|---|---:|
+| `test_chunking.py` | 6 |
+| `test_document_processor.py` | 4 |
+| `test_rag_service.py` | 4 |
+| `test_interview_service.py` | 9 |
+| **Total** | **23** |
+
+The tests cover:
+
+- Fixed-size and sentence-based chunking
+- Chunk size and overlap validation
+- PDF and TXT extraction
+- PDF page number preservation
+- Unsupported file types
+- Empty question handling
+- RAG retrieval and answer generation
+- Conversation history handling
+- Interview booking validation
+- Duplicate booking prevention within a session
+- Successful booking flow
+
+Service-level tests use mocked dependencies where appropriate, avoiding unnecessary calls to external services.
+
+## RAG Evaluation
+
+The project includes a basic RAG evaluation pipeline using:
+
+- `evaluate_rag.py`
+- `evaluation_dataset.json`
+
+The evaluation dataset contains manually curated questions, expected answers, and expected source information.
+
+The evaluation script measures:
+
+- Answer accuracy
+- Source accuracy
+- Correct abstentions for unanswerable questions
+- Precision@3
+- Recall@3
+
+The evaluation provides a small benchmark for checking retrieval and answer-generation behavior. Results should be interpreted in the context of the limited, manually curated dataset.
+
+## System Architecture
+
+### Document Ingestion Flow
+
+1. User uploads a PDF or TXT document.
+2. FastAPI receives the document.
+3. PyMuPDF or text decoding extracts the content.
+4. The selected chunking strategy divides the content.
+5. Gemini generates embeddings.
+6. Qdrant stores the vectors and associated chunk payloads.
+7. PostgreSQL stores document metadata.
+
+### Conversational RAG Flow
+
+1. User submits a question.
+2. Redis provides previous conversation history.
+3. Gemini generates a query embedding.
+4. Qdrant performs semantic and BM25 retrieval.
+5. Reciprocal Rank Fusion combines the retrieval results.
+6. Relevant chunks are passed to Gemini as context.
+7. Gemini generates the answer.
+8. Source information is returned with the response.
+9. Redis stores the conversation history.
+
+### Interview Booking Flow
+
+1. User expresses interview booking intent.
+2. Gemini extracts booking details from the conversation.
+3. The application checks for missing information.
+4. Email, date, and time are validated.
+5. Valid booking information is saved in PostgreSQL.
+6. Redis stores the completed booking state for the session.
+7. The assistant returns the booking confirmation.
 
 ## Important Notes
 
-- This project provides backend APIs; a separate frontend is not included.
+- This project provides backend REST APIs; a separate frontend is not included.
 - Docker must be running before starting the application.
-- Valid Gemini API credentials are required.
-- Redis, Qdrant, and PostgreSQL must be accessible using the configured ports.
+- A valid Gemini API key is required.
+- Qdrant, Redis, and PostgreSQL must be accessible using the configured connection settings.
+- The RAG evaluation dataset is a small manually curated benchmark and does not represent comprehensive real-world evaluation.
 
 ## Author
 
 Developed as a technical assignment for Palm Mind AI.
+
+GitHub: https://github.com/istuti55
