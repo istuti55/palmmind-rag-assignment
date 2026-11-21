@@ -32,18 +32,19 @@ def create_collection() -> None:
             )
         )
 
+
 def store_chunks(
     chunks: list[str],
     embeddings: list[list[float]],
     filename: str,
-    chunking_strategy: str
+    chunking_strategy: str,
+    pages: list[int | None] | None = None
 ) -> None:
-    """
-    Store document chunks and their embeddings in Qdrant.
-    """
-
     if len(chunks) != len(embeddings):
         raise ValueError("Number of chunks and embeddings must match")
+
+    if pages is not None and len(chunks) != len(pages):
+        raise ValueError("Number of chunks and page numbers must match")
 
     points = []
 
@@ -55,7 +56,8 @@ def store_chunks(
                 "text": chunk,
                 "filename": filename,
                 "chunk_index": index,
-                "chunking_strategy": chunking_strategy
+                "chunking_strategy": chunking_strategy,
+                "page": pages[index] if pages is not None else None
             }
         )
 
@@ -72,9 +74,6 @@ def search_similar_chunks(
     query_embedding: list[float],
     limit: int = 3
 ) -> list[dict]:
-    """
-    Search Qdrant and return the most relevant document chunks.
-    """
     results = client.query_points(
         collection_name=COLLECTION_NAME,
         query=query_embedding,
@@ -86,7 +85,10 @@ def search_similar_chunks(
         {
             "text": point.payload["text"],
             "filename": point.payload["filename"],
+            "page": point.payload.get("page"),
             "score": point.score
         }
         for point in results.points
     ]
+
+

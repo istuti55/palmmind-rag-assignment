@@ -58,3 +58,45 @@ def sentence_based_chunking(
         chunks.append(current_chunk.strip())
 
     return chunks
+
+
+def chunk_pages(
+    pages: list[dict],
+    strategy: str,
+    chunk_size: int = 500,
+    overlap: int = 50
+) -> list[dict]:
+    """
+    Split extracted document pages into chunks
+    while preserving their page numbers.
+    """
+
+    chunked_pages = []
+
+    for page in pages:
+        page_number = page["page"]
+        text = page["text"]
+
+        if strategy == "fixed_size":
+            chunks = fixed_size_chunking(
+                text,
+                chunk_size=chunk_size,
+                overlap=overlap
+            )
+
+        elif strategy == "sentence_based":
+            chunks = sentence_based_chunking(
+                text,
+                max_chunk_size=chunk_size
+            )
+
+        else:
+            raise ValueError("Unsupported chunking strategy")
+
+        for chunk in chunks:
+            chunked_pages.append({
+                "text": chunk,
+                "page": page_number
+            })
+
+    return chunked_pages

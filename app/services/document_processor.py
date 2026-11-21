@@ -3,9 +3,9 @@ import fitz
 from pathlib import Path
 
 
-def extract_text(filename: str, content: bytes) -> str:
+def extract_text_with_pages(filename: str, content: bytes) -> list[dict]:
     """
-    Extract text from PDF or TXT files.
+    Extract text from PDF or TXT files while preserving page numbers.
     """
 
     extension = Path(filename).suffix.lower()
@@ -16,17 +16,28 @@ def extract_text(filename: str, content: bytes) -> str:
             filetype="pdf"
         )
 
-        extracted_text = ""
+        extracted_pages = []
 
-        for page in pdf_document:
-            extracted_text += page.get_text()
+        for page_number, page in enumerate(pdf_document, start=1):
+            extracted_text = page.get_text()
+
+            if extracted_text.strip():
+                extracted_pages.append({
+                    "page": page_number,
+                    "text": extracted_text
+                })
 
         pdf_document.close()
 
-        return extracted_text
+        return extracted_pages
 
     elif extension == ".txt":
-        return content.decode("utf-8")
+        extracted_text = content.decode("utf-8")
+
+        return [{
+            "page": None,
+            "text": extracted_text
+        }]
 
     else:
         raise ValueError("Unsupported file type")
