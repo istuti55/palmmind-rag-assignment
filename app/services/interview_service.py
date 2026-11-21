@@ -21,9 +21,6 @@ def process_interview_message(session_id: str, message: str) -> dict:
 
     existing_booking_id = redis_client.get(booking_key)
 
-    # Get previous conversation
-    history = get_chat_history(session_id)
-
     # If a booking already exists, check only the new message.
     if existing_booking_id:
         details = extract_booking_details(message)
@@ -41,7 +38,10 @@ def process_interview_message(session_id: str, message: str) -> dict:
             "booking_id": int(existing_booking_id)
         }
 
-    # Continue an unfinished booking using conversation history
+    # Get previous conversation only when booking is not completed.
+    history = get_chat_history(session_id)
+
+    # Continue an unfinished booking using conversation history.
     conversation = "\n".join(
         history + [f"user: {message}"]
     )
@@ -56,7 +56,7 @@ def process_interview_message(session_id: str, message: str) -> dict:
 
     save_message(session_id, "user", message)
 
-    # Check for missing information
+    # Check for missing information.
     required_fields = [
         "name",
         "email",
@@ -85,7 +85,7 @@ def process_interview_message(session_id: str, message: str) -> dict:
             "missing_fields": missing_fields
         }
 
-    # Validate email
+    # Validate email.
     email = details["email"].strip()
 
     if not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email):
@@ -103,7 +103,7 @@ def process_interview_message(session_id: str, message: str) -> dict:
             "invalid_fields": ["email"]
         }
 
-    # Validate interview date
+    # Validate interview date.
     try:
         interview_date = date.fromisoformat(
             details["interview_date"]
@@ -132,7 +132,7 @@ def process_interview_message(session_id: str, message: str) -> dict:
             "invalid_fields": ["interview_date"]
         }
 
-    # Validate interview time
+    # Validate interview time.
     try:
         interview_time = time.fromisoformat(
             details["interview_time"]
@@ -149,7 +149,7 @@ def process_interview_message(session_id: str, message: str) -> dict:
             "invalid_fields": ["interview_time"]
         }
 
-    # Save booking in PostgreSQL
+    # Save booking in PostgreSQL.
     booking = create_booking(
         name=details["name"].strip(),
         email=email,
@@ -157,7 +157,7 @@ def process_interview_message(session_id: str, message: str) -> dict:
         interview_time=interview_time
     )
 
-    # Store booking ID in Redis for 30 days
+    # Store booking ID in Redis for 30 days.
     redis_client.set(
         booking_key,
         booking["id"],

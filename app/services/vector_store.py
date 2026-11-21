@@ -17,7 +17,6 @@ client = QdrantClient(
 COLLECTION_NAME = "documents"
 
 
-
 def create_collection() -> None:
     """
     Create the Qdrant collection and its BM25 text index.
@@ -51,10 +50,12 @@ def create_collection() -> None:
                 tokenizer="word",
                 min_token_len=2,
                 max_token_len=40,
-                lowercase=True
+                lowercase=True,
+                scoring=True
             ),
             wait=True
         )
+
 
 def store_chunks(
     chunks: list[str],
@@ -63,6 +64,7 @@ def store_chunks(
     chunking_strategy: str,
     pages: list[int | None] | None = None
 ) -> None:
+
     if len(chunks) != len(embeddings):
         raise ValueError("Number of chunks and embeddings must match")
 
@@ -92,11 +94,11 @@ def store_chunks(
     )
 
 
-
 def search_similar_chunks(
     query_embedding: list[float],
     limit: int = 3
 ) -> list[dict]:
+
     results = client.query_points(
         collection_name=COLLECTION_NAME,
         query=query_embedding,
@@ -113,7 +115,6 @@ def search_similar_chunks(
         }
         for point in results.points
     ]
-
 
 
 def search_hybrid_chunks(
