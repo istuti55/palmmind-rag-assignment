@@ -18,6 +18,7 @@ The system allows users to upload PDF and TXT documents, ask questions about the
 - Text embeddings using Google Gemini
 - Vector storage and retrieval using Qdrant
 - Hybrid search combining semantic vector search and BM25 full-text search
+- BM25 scoring enabled for Qdrant full-text search
 - Reciprocal Rank Fusion (RRF) for combining retrieval results
 - Context-aware answer generation using Gemini
 - Page-level source citations for PDF documents
@@ -31,7 +32,7 @@ The system allows users to upload PDF and TXT documents, ask questions about the
 - Email, date, and time validation
 - Prevention of repeated bookings within a completed session
 - Booking persistence using PostgreSQL
-- Redis-based session booking state
+- Redis-based session booking state with a 30-day expiry
 
 ### Evaluation and Testing
 - RAG evaluation script with a manually curated evaluation dataset
@@ -188,7 +189,7 @@ uvicorn app.main:app --reload
 
 Open the interactive API documentation:
 
-http://127.0.0.1:8000/docs
+[http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
 
 ## API Endpoints
 
@@ -258,11 +259,13 @@ The assistant collects the candidate's:
 
 Gemini extracts booking details from the conversation. The application validates the information before saving the booking in PostgreSQL.
 
-Redis maintains the booking state for the session to prevent repeated bookings within that session.
+Redis stores the completed booking ID for each session with a 30-day expiry, preventing repeated bookings within that session.
 
 ## Testing
 
 The project includes 23 automated tests implemented using pytest.
+
+The complete test suite currently passes all 23 tests.
 
 Run the complete test suite:
 
