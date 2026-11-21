@@ -1,6 +1,5 @@
-
 from app.services.embedding_service import generate_query_embedding
-from app.services.vector_store import search_similar_chunks
+from app.services.vector_store import search_hybrid_chunks
 from app.services.llm_service import generate_answer
 from app.services.redis_service import save_message, get_chat_history
 
@@ -16,12 +15,12 @@ def ask_question(question: str, session_id: str = "default") -> dict:
 
     query_embedding = generate_query_embedding(search_query)
 
-    results = search_similar_chunks(query_embedding, limit=3)
+    results = search_hybrid_chunks(
+        query_text=question,
+        query_embedding=query_embedding,
+        limit=3
+    )
 
-    results = [
-       result for result in results
-    if result["score"] >= 0.70
-]
     if not results:
         return {
             "question": question,

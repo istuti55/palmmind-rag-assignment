@@ -1,7 +1,9 @@
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, VectorParams
+from qdrant_client import models
 from uuid import uuid4
 from qdrant_client.models import PointStruct
+
 
 
 # Connect to Qdrant
@@ -92,3 +94,43 @@ def search_similar_chunks(
     ]
 
 
+
+def search_hybrid_chunks(
+    query_text: str,
+    query_embedding: list[float],
+    limit: int = 3
+) -> list[dict]:
+    """
+    Combine semantic search and BM25 keyword search
+    using Reciprocal Rank Fusion (RRF).
+    """
+
+    results = client.query_points(
+        collection_name=COLLECTION_NAME,
+        prefetch=[
+            models.Prefetch(
+                query=query_embedding,
+                limit=10
+            ),
+            models.Prefetch(
+                query=models.TextQuery(text=query_text),
+                using="text",
+                limit=10
+            )
+        ],
+        query=models.FusionQuery(
+            fusion=models.Fusion.RRF
+        ),
+        limit=limit,
+        with_payload=True
+    )
+
+    return [
+        {
+            "text": point.payload["text"],
+            "filename": point.payload["filename"],
+            "page": point.payload.get("page"),
+            "score": point.score
+        }
+        for point in results.points
+    ]
